@@ -79,14 +79,15 @@ export function summariseSession(
     const prevVolume = bestVolume[ex.exerciseId] ?? 0;
     const prevReps = bestReps[ex.exerciseId] ?? 0;
 
-    if (e1rm > 0 && e1rm >= prevE1rm + 0.5) {
+    // Thresholds filter out rep-to-rep noise so a record means real progress.
+    if (e1rm > 0 && e1rm >= prevE1rm + Math.max(0.5, prevE1rm * 0.01)) {
       prs.push({ ...base, type: "e1rm", value: Math.round(e1rm * 10) / 10, previous: prevE1rm || undefined });
     } else if (heaviest > 0 && heaviest > prevWeight) {
       prs.push({ ...base, type: "weight", value: heaviest, previous: prevWeight || undefined });
     } else if (heaviest === 0 && topReps > prevReps) {
       // Bodyweight movements progress in reps.
       prs.push({ ...base, type: "reps", value: topReps, previous: prevReps || undefined });
-    } else if (vol > 0 && prevVolume > 0 && vol > prevVolume * 1.02) {
+    } else if (vol > 0 && prevVolume > 0 && vol > prevVolume * 1.05) {
       prs.push({ ...base, type: "volume", value: Math.round(vol), previous: Math.round(prevVolume) });
     }
   }

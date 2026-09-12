@@ -16,6 +16,7 @@ import {
   VOLUME_LANDMARKS,
   adherence,
   bestE1RMByExercise,
+  firstSessionDate,
   judgeVolume,
   mesocycleWeek,
   recentSessions,
@@ -215,8 +216,11 @@ export function generateInsights(data: AppData): Insight[] {
 
   /* --- deload ----------------------------------------------------------- */
   if (done.length >= 8) {
-    const firstDate = done[done.length - 1].date;
-    const meso = mesocycleWeek(firstDate, toISODate(), program.mesocycleWeeks);
+    const meso = mesocycleWeek(
+      firstSessionDate(done) ?? toISODate(),
+      toISODate(),
+      program.mesocycleWeeks,
+    );
     if (meso.phase === "deload") {
       out.push({
         id: "deload",
@@ -257,7 +261,7 @@ export function generateInsights(data: AppData): Insight[] {
     }
     out.push({
       id: "weight-trend",
-      title: `${direction === "holding" ? "Bodyweight steady" : `${direction} ${Math.abs(round(perWeek, 2))} kg/week`}`,
+      title: `${direction === "holding" ? "Bodyweight steady" : `${direction === "gaining" ? "Gaining" : "Losing"} ${Math.abs(round(perWeek, 2))} kg/week`}`,
       body: `${round(last.weightKg ?? 0, 1)} kg as of ${last.date}. ${verdict}`,
       tone: "info",
       action: { label: "Log a weigh-in", href: "/progress" },
@@ -343,7 +347,7 @@ export function offlineCoachReply(question: string, data: AppData): string {
           )
         : "No working sets logged this week yet.",
       "",
-      "10-20 hard sets per muscle per week is the range most people grow in. Under 10 is maintenance; past your ceiling just adds fatigue.",
+      "Roughly 10-22 hard sets per muscle per week (secondary movers count as half) is where most people grow. Under about 8 is maintenance; past your ceiling just adds fatigue.",
     ].join("\n");
   }
 

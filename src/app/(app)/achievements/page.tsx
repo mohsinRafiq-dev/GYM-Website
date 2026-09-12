@@ -167,10 +167,10 @@ export default function AchievementsPage() {
         <CardBody>
           <ul className="space-y-1.5 text-xs leading-relaxed text-muted">
             {[
-              "80 XP base for finishing any session — showing up is most of it.",
-              "Up to 120 XP scaled by the volume you moved, and 4 XP per working set.",
-              "60 XP for every personal record you set.",
-              "A streak bonus of 2 XP for every session in your current streak, capped at 50.",
+              "60 XP for finishing any session — showing up is most of it.",
+              "Up to 40 XP for the volume you moved, 2 XP per working set (up to 40) and up to 20 XP for time trained.",
+              "20 XP for each personal record, up to 60 in a session.",
+              "1 XP for every session in your current streak, up to 30.",
               "Badges pay their XP once, when they unlock.",
             ].map((t) => (
               <li key={t} className="flex gap-2">

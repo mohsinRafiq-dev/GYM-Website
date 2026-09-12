@@ -28,6 +28,7 @@ import { getProgram, dayActivation } from "@/lib/data/programs";
 import { exerciseName } from "@/lib/data/exercises";
 import { generateInsights } from "@/lib/coach";
 import {
+  firstSessionDate,
   levelFromXP,
   levelTitle,
   mesocycleWeek,
@@ -74,9 +75,8 @@ export default function DashboardPage() {
       });
     }
 
-    const meso = done.length
-      ? mesocycleWeek(done[done.length - 1].date, toISODate(), program.mesocycleWeeks)
-      : null;
+    const started = firstSessionDate(done);
+    const meso = started ? mesocycleWeek(started, toISODate(), program.mesocycleWeeks) : null;
 
     const alreadyLoggedToday = done.some((s) => s.date === toISODate());
 

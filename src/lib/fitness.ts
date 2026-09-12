@@ -182,6 +182,16 @@ export const VOLUME_VERDICT_COPY: Record<VolumeVerdict, string> = {
 
 /* ---------------------------------------------------------- analysis ---- */
 
+/**
+ * The date training started — the anchor for mesocycle weeks. Taken as the
+ * minimum explicitly so it never depends on how the session list is ordered.
+ */
+export function firstSessionDate(sessions: WorkoutSession[]): string | undefined {
+  let first: string | undefined;
+  for (const s of sessions) if (s.completed && (!first || s.date < first)) first = s.date;
+  return first;
+}
+
 /** Hard (non-warmup, completed) working sets per muscle across sessions. */
 export function setsByMuscle(
   sessions: WorkoutSession[],
@@ -277,6 +287,20 @@ export function progressionAdvice(
     nextWeightKg: top,
     reason: `Stay at ${top} kg and add reps until every set hits ${repRange[1]}.`,
   };
+}
+
+/**
+ * Parse a prescription into a rep range: "8-12" → [8, 12], "10" → [10, 10],
+ * "8-12 per leg" → [8, 12]. Timed or open-ended work ("30 seconds", "AMRAP")
+ * has no rep range, so the fallback is returned.
+ */
+export function parseRepRange(reps: string, fallback: [number, number]): [number, number] {
+  if (/ds*(s|sec|second|seconds|min|minutes?)/i.test(reps)) return fallback;
+  const m = reps.match(/^s*(d+)s*(?:-s*(d+))?/);
+  if (!m) return fallback;
+  const lo = Number(m[1]);
+  const hi = m[2] ? Number(m[2]) : lo;
+  return lo > 0 && hi >= lo ? [lo, hi] : fallback;
 }
 
 /** Week 1-3 accumulate, week 4 deloads. Returns intensity/volume modifiers. */
@@ -473,12 +497,14 @@ export function sessionXP(opts: {
   prCount: number;
   streak: number;
 }): number {
-  const base = 80;
-  const volume = Math.min(120, opts.totalVolumeKg / 120);
-  const sets = Math.min(80, opts.totalSets * 4);
-  const time = Math.min(40, opts.durationSeconds / 90);
-  const prs = opts.prCount * 60;
-  const streakBonus = Math.min(50, opts.streak * 2);
+  // Showing up is most of the reward; effort, records and consistency top
+  // it up, each capped so no single factor dominates the curve.
+  const base = 60;
+  const volume = Math.min(40, opts.totalVolumeKg / 250);
+  const sets = Math.min(40, opts.totalSets * 2);
+  const time = Math.min(20, opts.durationSeconds / 180);
+  const prs = Math.min(60, opts.prCount * 20);
+  const streakBonus = Math.min(30, opts.streak);
   return Math.round(base + volume + sets + time + prs + streakBonus);
 }
 

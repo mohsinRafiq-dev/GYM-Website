@@ -144,7 +144,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden border-b border-line">
         <div className="grid-bg absolute inset-0 opacity-70" aria-hidden />
         <div
-          className="absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full blur-3xl"
+          className="absolute -top-40 left-1/2 h-96 w-2xl -translate-x-1/2 rounded-full blur-3xl"
           style={{ background: "radial-gradient(closest-side, rgba(201,255,77,0.16), transparent)" }}
           aria-hidden
         />

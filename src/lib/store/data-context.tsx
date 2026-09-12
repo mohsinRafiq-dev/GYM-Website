@@ -96,6 +96,9 @@ const DataContext = createContext<DataContextValue | null>(null);
  * pure function. React may call state updaters twice, so nothing here reads
  * refs or causes side effects.
  */
+const byDateDesc = (a: { date: string }, b: { date: string }) =>
+  a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
+
 function derive(next: AppData): AppData {
   const streak = computeStreak(next.attendance, {
     restAllowance: next.settings.streakRestAllowance,
@@ -117,6 +120,10 @@ function derive(next: AppData): AppData {
 
   return {
     ...withStreak,
+    // Screens read "most recent first" straight off these lists, so the store
+    // guarantees the order no matter how the data was written or loaded.
+    sessions: [...next.sessions].sort(byDateDesc),
+    metrics: [...next.metrics].sort(byDateDesc),
     gamification: { ...next.gamification, badges, xp, level: levelFromXP(xp).level },
   };
 }

@@ -39,6 +39,22 @@ export default function CoachPage() {
   const [streaming, setStreaming] = useState(false);
   const [draft, setDraft] = useState("");
   const [offline, setOffline] = useState<boolean | null>(null);
+  const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/coach")
+      .then((r) => r.json() as Promise<{ available?: boolean }>)
+      .then((j) => {
+        if (!alive) return;
+        setApiAvailable(Boolean(j.available));
+        setOffline(!j.available);
+      })
+      .catch(() => alive && setApiAvailable(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => data?.coachThread ?? [], [data?.coachThread]);
@@ -68,6 +84,26 @@ export default function CoachPage() {
         content: m.content,
       }));
 
+      // Offline analyst — still grounded in the user's real numbers.
+      const answerOffline = () => {
+        setOffline(true);
+        appendCoach([
+          {
+            id: makeId("m"),
+            role: "assistant",
+            content: offlineCoachReply(question, data),
+            createdAt: Date.now(),
+            offline: true,
+          },
+        ]);
+      };
+
+      if (apiAvailable === false) {
+        answerOffline();
+        setStreaming(false);
+        return;
+      }
+
       try {
         const res = await fetch("/api/coach", {
           method: "POST",
@@ -76,19 +112,7 @@ export default function CoachPage() {
         });
 
         if (!res.ok || !res.body) {
-          // Offline analyst — still grounded in the user's real numbers.
-          setOffline(true);
-          const reply = offlineCoachReply(question, data);
-          appendCoach([
-            {
-              id: makeId("m"),
-              role: "assistant",
-              content: reply,
-              createdAt: Date.now(),
-              offline: true,
-            },
-          ]);
-          setStreaming(false);
+          answerOffline();
           return;
         }
 
@@ -130,22 +154,13 @@ export default function CoachPage() {
           { id: makeId("m"), role: "assistant", content: acc, createdAt: Date.now() },
         ]);
       } catch {
-        setOffline(true);
-        appendCoach([
-          {
-            id: makeId("m"),
-            role: "assistant",
-            content: offlineCoachReply(question, data),
-            createdAt: Date.now(),
-            offline: true,
-          },
-        ]);
+        answerOffline();
       } finally {
         setDraft("");
         setStreaming(false);
       }
     },
-    [data, messages, appendCoach, streaming],
+    [data, messages, appendCoach, streaming, apiAvailable],
   );
 
   if (!data) return null;
@@ -238,8 +253,9 @@ export default function CoachPage() {
               </Button>
             </form>
             {offline && (
-              <p className="mt-2 flex items-center gap-1.5 text-[11px] text-faint">
-                <WifiOff size={11} />
+              // Inline, not flex: flex would split the text and <code> into columns.
+              <p className="mt-2 text-[11px] leading-relaxed text-faint">
+                <WifiOff size={11} className="mr-1 inline-block align-[-1px]" />
                 Offline analyst — still using your real data. Add an{" "}
                 <code className="font-mono text-[10px] text-ink">ANTHROPIC_API_KEY</code> to
                 .env.local for full conversational coaching.

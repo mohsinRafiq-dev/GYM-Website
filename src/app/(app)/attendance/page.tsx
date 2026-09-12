@@ -44,7 +44,7 @@ const STATUS_META: Record<
   },
   rest: { label: "Planned rest", color: "var(--c-panel-3)", icon: <Snowflake size={13} /> },
   missed: { label: "Missed", color: "var(--c-danger)", icon: <X size={13} /> },
-  sick: { label: "Ill", color: "var(--c-warn)", icon: <Thermometer size={13} /> },
+  sick: { label: "Sick", color: "var(--c-warn)", icon: <Thermometer size={13} /> },
   travel: { label: "Travelling", color: "var(--c-violet)", icon: <Plane size={13} /> },
 };
 

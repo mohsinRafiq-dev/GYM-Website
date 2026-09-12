@@ -56,7 +56,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl border border-line bg-panel shadow-[var(--shadow-pop)] sm:rounded-xl",
+          "relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl border border-line bg-panel shadow-(--shadow-pop) sm:rounded-xl",
           widths[size],
         )}
         style={{ animation: "rise 0.25s cubic-bezier(0.16,1,0.3,1) both" }}
@@ -111,7 +111,7 @@ export function Sheet({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
       <aside
-        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-line bg-panel shadow-[var(--shadow-pop)]"
+        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-line bg-panel shadow-(--shadow-pop)"
         style={{ animation: "slide-in 0.25s cubic-bezier(0.16,1,0.3,1) both" }}
       >
         <div className="flex items-center justify-between border-b border-line p-4">

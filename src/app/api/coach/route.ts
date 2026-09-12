@@ -64,7 +64,7 @@ function systemPrompt(ctx: CoachContext): string {
           .map(([m, n]) => `${m}: ${n}`)
           .join(", ")
       : "No working sets logged this week.",
-    "(For hypertrophy, roughly 10-20 hard sets per muscle per week is the productive range.)",
+    "(Fractional sets: primary movers count 1, secondary 0.5. Roughly 10-22 per muscle per week is productive for hypertrophy; under ~8 is maintenance.)",
     "",
     "=== RECENT PERSONAL RECORDS ===",
     ctx.recentPRs.length
@@ -78,6 +78,14 @@ function systemPrompt(ctx: CoachContext): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/**
+ * Lets the client learn whether the live coach is configured without making
+ * a request that is guaranteed to fail (and log an error) when it isn't.
+ */
+export async function GET() {
+  return Response.json({ available: Boolean(process.env.ANTHROPIC_API_KEY) });
 }
 
 export async function POST(req: NextRequest) {

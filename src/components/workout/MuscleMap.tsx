@@ -193,7 +193,7 @@ export function MuscleMap({
           const map = v === "front" ? FRONT : BACK;
           return (
             <figure key={v} className="flex flex-1 flex-col items-center gap-1">
-              <svg viewBox="0 0 120 210" className="w-full max-w-[150px]" role="img" aria-label={`${v} view muscle activation`}>
+              <svg viewBox="0 0 120 210" className="w-full max-w-37.5" role="img" aria-label={`${v} view muscle activation`}>
                 <Silhouette />
                 {Object.entries(map).map(([muscle, shapes]) => (
                   <Region

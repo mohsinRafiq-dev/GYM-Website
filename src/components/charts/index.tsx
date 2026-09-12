@@ -36,7 +36,7 @@ function TooltipCard({
   rows: { label: string; value: string; color?: string }[];
 }) {
   return (
-    <div className="rounded-lg border border-line bg-panel px-2.5 py-2 shadow-[var(--shadow-pop)]">
+    <div className="rounded-lg border border-line bg-panel px-2.5 py-2 shadow-(--shadow-pop)">
       <p className="text-[10px] uppercase tracking-wider text-faint">{title}</p>
       {rows.map((r) => (
         <p key={r.label} className="mt-1 flex items-center gap-1.5 text-xs text-ink">

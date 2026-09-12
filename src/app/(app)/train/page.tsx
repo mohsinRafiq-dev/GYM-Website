@@ -37,6 +37,7 @@ import { getExercise, substitutionsFor, exerciseName } from "@/lib/data/exercise
 import { lastPerformance, summariseSession } from "@/lib/session-utils";
 import {
   estimate1RM,
+  parseRepRange,
   platesPerSide,
   progressionAdvice,
   warmupRamp,
@@ -482,7 +483,11 @@ export default function TrainPage() {
           const last = lastPerformance(logged.exerciseId, data.sessions);
           const doneSets = logged.sets.filter((s) => s.completed).length;
           const advice = last
-            ? progressionAdvice(last.sets, ex.repRange)
+            ? progressionAdvice(
+                last.sets,
+                // Judge against today's prescription, not the exercise default.
+                planned ? parseRepRange(planned.reps, ex.repRange) : ex.repRange,
+              )
             : null;
 
           return (

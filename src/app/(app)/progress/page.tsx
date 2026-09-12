@@ -325,7 +325,7 @@ export default function ProgressPage() {
               />
             ) : (
               <div className="scroll-thin -mx-1 overflow-x-auto">
-                <table className="w-full min-w-[520px] text-left text-xs">
+                <table className="w-full min-w-130 text-left text-xs">
                   <thead>
                     <tr className="border-b border-line text-[10px] uppercase tracking-wider text-faint">
                       <th className="py-2 pl-1 font-semibold">Date</th>
@@ -390,7 +390,7 @@ export default function ProgressPage() {
                 {data.photos.slice(0, 9).map((p) => (
                   <figure key={p.id} className="group relative overflow-hidden rounded-lg border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={`${p.pose} pose, ${p.date}`} className="aspect-[3/4] w-full object-cover" />
+                    <img src={p.url} alt={`${p.pose} pose, ${p.date}`} className="aspect-3/4 w-full object-cover" />
                     <figcaption className="absolute inset-x-0 bottom-0 bg-black/60 px-1.5 py-1 text-[10px] text-white">
                       {p.pose} · {relativeDay(p.date)}
                     </figcaption>

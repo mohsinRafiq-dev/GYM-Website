@@ -77,7 +77,7 @@ export function RestTimer({
     <div className="fixed inset-x-3 bottom-20 z-40 mx-auto max-w-md lg:bottom-6">
       <div
         className={cn(
-          "glass flex items-center gap-3 rounded-xl p-3 shadow-[var(--shadow-pop)]",
+          "glass flex items-center gap-3 rounded-xl p-3 shadow-(--shadow-pop)",
           done && "border-volt",
         )}
       >

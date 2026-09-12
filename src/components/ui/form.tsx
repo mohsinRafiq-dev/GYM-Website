@@ -92,7 +92,7 @@ export function Toggle({
         <span
           className={cn(
             "absolute top-0.5 h-4.5 w-4.5 rounded-full transition-all duration-200",
-            checked ? "left-[22px] bg-volt" : "left-0.5 bg-faint",
+            checked ? "left-5.5 bg-volt" : "left-0.5 bg-faint",
           )}
           style={{ height: 18, width: 18 }}
         />
