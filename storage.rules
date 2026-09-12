@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// ============================================================================
+// IronPulse Firebase Storage rules
+//
+// Deploy with:  firebase deploy --only storage
+//
+// Each user owns users/{uid}/… and nobody else can read or write it. Uploads
+// must be images under 10 MB — the app compresses photos to ~300 KB anyway.
+// ============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && (
+                     request.resource == null  // deletes
+                     || (
+                       request.resource.size < 10 * 1024 * 1024
+                       && request.resource.contentType.matches('image/.*')
+                     )
+                   );
+    }
+  }
+}

@@ -61,13 +61,23 @@ something to show. Or create your own account and go through the five-step onboa
   specific video you all agree on.
 
 ### Workout player
-- Loads today's session with **last session's weights pre-filled**.
+- Loads today's session with **weights pre-filled from your history** — deload-aware:
+  deload weeks start near 60%, and the week after picks up from your real working weights.
 - Log weight, reps and RPE per set; mark warm-up sets; add or remove sets.
 - **Rest timer** that starts automatically, with sound, vibration and ±15s controls.
 - "Last time" comparison and a progression call (add load / hold / back off).
+- **Tempo metronome** that beeps each second of the prescribed tempo and counts reps.
 - Swap an exercise mid-session, plate calculator with warm-up ramp, per-exercise notes.
 - Automatic **personal-record detection** (heaviest set, estimated 1RM, session volume),
   XP and a session summary. An in-progress workout survives a page refresh.
+
+### Form checks
+- Film a set or upload a clip. **The video never leaves your device.**
+- Scrub in slow motion, step frame by frame, and watch it next to the animated demonstration.
+- Tick the exercise's cues and common mistakes as a self-review.
+- Capture up to six key frames (or auto-pick them) and get a **Claude vision review** of
+  your technique — only those frames are sent, and only when you ask.
+- Checks are saved with a thumbnail so you can compare over time.
 
 ### Consistency
 - **Attendance**: check in as trained, active recovery, rest, ill or travelling; edit any
@@ -80,7 +90,10 @@ something to show. Or create your own account and go through the five-step onboa
   share a six-character join code.
 - Members must accept the terms. Roles: **owner**, **coach**, **member** (owners promote and
   remove). Leaderboard by streak, weekly sessions, volume or XP. Weekly team challenges.
-  Team feed for announcements and cheers.
+  **Live team chat** with coach announcements.
+- **Programme builder** for owners and coaches: clone a built-in plan or start from a blank
+  week, edit every day and exercise with a live volume check, then assign it to members.
+  Members see a banner and switch with one tap.
 
 ### AI coach
 - Streaming chat grounded in your data: profile and limitations, today's session, last 14
@@ -92,13 +105,16 @@ something to show. Or create your own account and go through the five-step onboa
 - **Nutrition**: BMR/TDEE/macros from your stats, water tracker, food log, scalable
   vegetarian and non-vegetarian meal plans, and honest supplement verdicts.
 - **Progress**: volume trend, estimated 1RM per lift, bodyweight trend, BMI and Navy body-fat
-  estimate, measurements, progress photos, PR log, session history.
-- **Timetable & alarms**: per-day training times, in-app alarm with sound, browser
-  notifications, and a `.ics` calendar export for real phone alarms.
+  estimate, measurements, progress photos, PR log, session history. **Import** bodyweight
+  and measurements from any CSV (Google Fit, Samsung Health, a spreadsheet) or an Apple Health
+  `export.xml` — parsed in the browser, nothing uploaded.
+- **Timetable & alarms**: per-day training times, in-app alarm with sound and snooze, browser
+  notifications, optional **push reminders when the app is closed**, and a `.ics` calendar
+  export for real phone alarms.
 - **Tools**: 1RM calculator, plate loader, interval timer/stopwatch, body composition,
   macro calculator, unit converter.
 - **Settings**: profile, programme, units, theme (dark/light/system), sounds, privacy,
-  data export and reset.
+  data export, backup restore and reset.
 - **PWA**: installable, with an offline shell.
 
 ---
@@ -113,14 +129,16 @@ team. Firebase fixes that. The free Spark plan is plenty for a crew.
 3. **Authentication** → Sign-in method → enable **Email/Password** and **Google**.
    Under *Settings → Authorized domains*, add your deployed domain later.
 4. **Firestore Database** → Create database → start in *production mode*.
-5. **Deploy the security rules** in [`firestore.rules`](firestore.rules):
+   **Storage** → Get started (used for progress photos).
+5. **Deploy the security rules** in [`firestore.rules`](firestore.rules) and
+   [`storage.rules`](storage.rules) — [`firebase.json`](firebase.json) already points at both:
    ```bash
    npm install -g firebase-tools
    firebase login
-   firebase init firestore   # choose your project, keep firestore.rules
-   firebase deploy --only firestore:rules
+   firebase use --add        # pick your project
+   firebase deploy --only firestore:rules,storage
    ```
-   Or paste the file's contents into *Firestore → Rules* in the console and publish.
+   Or paste each file into *Firestore → Rules* and *Storage → Rules* in the console.
 6. **Create `.env.local`** from the template and fill in the six `NEXT_PUBLIC_FIREBASE_*`
    values:
    ```bash
@@ -138,16 +156,40 @@ team. Firebase fixes that. The free Spark plan is plenty for a crew.
 | `users/{uid}/attendance/{date}`       | Daily check-ins                                      |
 | `users/{uid}/metrics/{id}`            | Bodyweight and measurements                          |
 | `users/{uid}/nutrition/{date}`        | Food and water logs                                  |
-| `users/{uid}/photos/{id}`             | Progress photos                                      |
+| `users/{uid}/photos/{id}`             | Progress photo details (the image is in Storage)     |
 | `users/{uid}/coach/{id}`              | Coach conversation                                   |
-| `teams/{teamId}`                      | Team, roster with shared stats, rules, feed          |
+| `users/{uid}/formChecks/{id}`         | Form-check notes, checklist, review, small thumbnail |
+| `users/{uid}/devices/{token}`         | Push-reminder schedule for each enabled device       |
+| `teams/{teamId}`                      | Team, roster, rules, chat, programmes, assignments   |
+| Storage `users/{uid}/photos/{id}.jpg` | Compressed progress photos (owner-only)              |
 
 The rules let a user read and write only their own `users/{uid}` tree. Team documents are
 readable by signed-in users (that's how joining by code works) and only members can
 update them.
 
-> **Progress photos** are stored inline as data URLs. That's fine in local mode, but
-> Firestore documents cap at 1 MB — for heavy photo use, move them to Firebase Storage.
+Writes are diffed — only documents that changed are sent, and deletions propagate. Team
+changes (joining, chat, roles, programmes) run as transactions, so two people acting at once
+never overwrite each other. If you turn off *Share my stats with my team*, your leaderboard
+numbers are hidden from everyone else.
+
+### Push reminders while the app is closed (optional)
+
+A closed tab can only receive a notification through a push service, so this part needs a
+small scheduled job. It requires the **Blaze** (pay-as-you-go) plan; a crew's usage stays
+well inside the free allowance.
+
+1. *Project settings → Cloud Messaging → Web Push certificates* → **Generate key pair**.
+   Put the key in `.env.local` as `NEXT_PUBLIC_FIREBASE_VAPID_KEY` and rebuild.
+2. Deploy the scheduled function in [`functions/`](functions/src/index.ts). Every five
+   minutes it finds devices whose reminder time has arrived in their own time zone, skips
+   anyone who has already trained that day, and removes expired tokens:
+   ```bash
+   cd functions && npm install && cd ..
+   firebase deploy --only functions
+   ```
+3. In the app: *Timetable → Reminders when the app is closed* → turn it on, on each device.
+
+On iPhone, web push only works after *Share → Add to Home Screen* (iOS 16.4 or later).
 
 ---
 
@@ -166,6 +208,12 @@ streams the reply, caches the system prompt, and has server-side refusal fallbac
 a declined request degrades gracefully instead of dead-ending the chat.
 
 Without a key, the coach page still works — it switches to the offline analyst and says so.
+
+The same key powers **form-check reviews** in
+[`src/app/api/form-check/route.ts`](src/app/api/form-check/route.ts). The route looks up the
+exercise's cues and mistakes on the server, accepts at most six JPEG frames, and asks Claude
+to review only what the frames show — including how confident it is and how to film better.
+Without a key, the self-review checklist still works.
 
 ---
 
@@ -191,15 +239,20 @@ src/
 │   ├── page.tsx                 Landing page
 │   ├── login/                   Sign in / sign up / demo
 │   ├── api/coach/route.ts       Streaming AI coach endpoint
+│   ├── api/form-check/route.ts  Claude vision review of captured frames
+│   ├── firebase-messaging-sw.js Push service worker (generated from env)
 │   └── (app)/                   Signed-in app (shared shell)
 │       ├── dashboard/  plan/  plan/[day]/  train/
 │       ├── exercises/  exercises/[id]/
 │       ├── attendance/  progress/  nutrition/  achievements/
-│       ├── team/  coach/  timetable/  tools/  settings/  onboarding/
+│       ├── team/  team/programs/  coach/  form-check/
+│       ├── timetable/  tools/  settings/  onboarding/
 ├── components/
 │   ├── ui/                      Buttons, cards, forms, modals, feedback
 │   ├── charts/                  Trend, muscle balance, grouped bars, heatmap
-│   ├── workout/                 ExerciseAnimation, MuscleMap, ExerciseCard, RestTimer
+│   ├── workout/                 ExerciseAnimation, MuscleMap, RestTimer, TempoMetronome
+│   ├── team/                    Live chat, programmes and assignments
+│   ├── progress/                Measurement import dialog
 │   └── layout/AppShell.tsx      Sidebar, top bar, mobile navigation
 └── lib/
     ├── types.ts                 Domain model
@@ -208,8 +261,12 @@ src/
     ├── session-utils.ts         Session summaries and PR detection
     ├── animation/               Figure rig (forward kinematics) + 26 movement patterns
     ├── data/                    Exercises, programmes, nutrition, badges
-    ├── firebase/config.ts       Optional Firebase initialisation
+    ├── firebase/                Optional Firebase initialisation, Storage uploads
+    ├── importers.ts             CSV and Apple Health parsers
+    ├── image.ts                 Photo compression and video frame capture
+    ├── push.ts                  Push-notification registration
     └── store/                   Auth + data providers, storage adapters, demo seed
+functions/                       Scheduled Cloud Function that sends push reminders
 ```
 
 ---
@@ -218,8 +275,8 @@ src/
 
 - **Local mode is not secure authentication.** Its passwords only stop accidental mix-ups
   on a shared browser. Use Firebase for anything real.
-- **Reminders while the browser is closed**: a website can't wake your phone by itself.
-  In-app alarms and notifications fire while IronPulse is open; for guaranteed alarms,
+- **Reminders while the browser is closed** need push set up (above). Without it, in-app
+  alarms and notifications fire while IronPulse is open. For guaranteed alarms either way,
   use *Timetable → Download calendar file* and import it into your phone's calendar.
 - **Units**: weights are stored in kilograms and converted for display when you choose
   imperial.

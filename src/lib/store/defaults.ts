@@ -22,7 +22,9 @@ export function defaultSettings(): UserSettings {
       sunday: null,
     },
     reminderLeadMinutes: 30,
+    snoozeMinutes: 10,
     notificationsEnabled: false,
+    pushEnabled: false,
     publicProfile: true,
     shareStatsWithTeam: true,
     streakRestAllowance: 2,
@@ -68,6 +70,7 @@ export function emptyAppData(profile: UserProfile): AppData {
     favorites: [],
     exerciseVideos: {},
     coachThread: [],
+    formChecks: [],
   };
 }
 
@@ -88,5 +91,6 @@ export function hydrate(raw: Partial<AppData> | null, fallback: AppData): AppDat
     exerciseVideos: raw.exerciseVideos ?? {},
     teamId: raw.teamId,
     coachThread: raw.coachThread ?? [],
+    formChecks: raw.formChecks ?? [],
   };
 }

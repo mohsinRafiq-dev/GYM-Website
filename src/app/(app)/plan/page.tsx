@@ -19,7 +19,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Pill } from "@/components/ui/feedback";
 import { Modal } from "@/components/ui/modal";
 import { MuscleBalanceChart } from "@/components/charts";
-import { PROGRAMS, getProgram, weeklySetsByMuscle, totalSets } from "@/lib/data/programs";
+import { allPrograms, getProgram, weeklySetsByMuscle, totalSets } from "@/lib/data/programs";
 import { exerciseName } from "@/lib/data/exercises";
 import { useData } from "@/lib/store/data-context";
 import { DAY_KEYS, DAY_LABELS } from "@/lib/types";
@@ -49,7 +49,7 @@ export default function PlanPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Your weekly plan"
+        title={program.name}
         subtitle={program.description}
         badge={`${program.daysPerWeek} days / week`}
         action={
@@ -218,7 +218,7 @@ export default function PlanPage() {
         size="lg"
       >
         <div className="space-y-2.5">
-          {PROGRAMS.map((p) => {
+          {allPrograms().map((p) => {
             const active = p.id === program.id;
             return (
               <button
@@ -245,6 +245,7 @@ export default function PlanPage() {
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   <Pill tone="volt">{p.daysPerWeek} days</Pill>
                   <Pill>{p.level}</Pill>
+                  {p.custom && <Pill tone="violet">by {p.custom.createdByName}</Pill>}
                   {p.goal.slice(0, 2).map((g) => (
                     <Pill key={g} tone="ice">
                       {g.replace("-", " ")}

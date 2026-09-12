@@ -32,8 +32,9 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start justify-between gap-3 p-4 pb-3", className)}>
-      <div className="flex min-w-0 items-start gap-3">
+    <div className={cn("flex flex-wrap items-start justify-between gap-3 p-4 pb-3", className)}>
+      {/* The title keeps at least 12rem; a wide action wraps below instead of crushing it. */}
+      <div className="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
         {icon && (
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-panel3 text-volt">
             {icon}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Database,
@@ -13,6 +13,7 @@ import {
   Shield,
   Sun,
   Timer,
+  Upload,
   User,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -24,7 +25,7 @@ import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/store/auth-context";
 import { useData } from "@/lib/store/data-context";
 import { useTheme } from "@/components/theme-provider";
-import { PROGRAMS } from "@/lib/data/programs";
+import { allPrograms } from "@/lib/data/programs";
 import { ACTIVITY_LABELS } from "@/lib/fitness";
 import {
   DAY_KEYS,
@@ -41,9 +42,11 @@ import { cmToIn, inToCm, kgToLb, lbToKg, round } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { user, signOut, mode } = useAuth();
-  const { data, updateProfile, updateSettings, storage, exportData, resetData } = useData();
+  const { data, updateProfile, updateSettings, storage, exportData, resetData, restoreBackup } =
+    useData();
   const { theme, setTheme } = useTheme();
   const [resetOpen, setResetOpen] = useState(false);
+  const restoreInput = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(data?.profile.displayName ?? "");
   const [bio, setBio] = useState(data?.profile.bio ?? "");
@@ -59,6 +62,15 @@ export default function SettingsPage() {
       limitations: limitations.trim() || undefined,
     });
     toast.success("Profile saved");
+  };
+
+  const onRestore = async (file: File) => {
+    try {
+      const { sessions, metrics } = restoreBackup(await file.text());
+      toast.success(`Backup restored — ${sessions} sessions and ${metrics} measurements`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not restore that backup.");
+    }
   };
 
   const download = () => {
@@ -175,7 +187,7 @@ export default function SettingsPage() {
               <Select
                 value={data.profile.programId}
                 onChange={(e) => {
-                  const next = PROGRAMS.find((p) => p.id === e.target.value);
+                  const next = allPrograms().find((p) => p.id === e.target.value);
                   if (!next) return;
                   updateProfile({
                     programId: next.id,
@@ -186,7 +198,7 @@ export default function SettingsPage() {
                   toast.success(`Switched to ${next.name}`);
                 }}
               >
-                {PROGRAMS.map((p) => (
+                {allPrograms().map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — {p.tagline}
                   </option>
@@ -293,6 +305,12 @@ export default function SettingsPage() {
               label="Auto-start rest timer"
               description="Starts counting the moment you tick a working set."
             />
+            <Toggle
+              checked={data.settings.tempoMetronome}
+              onChange={(v) => updateSettings({ tempoMetronome: v })}
+              label="Tempo metronome on by default"
+              description="Beeps each second of the prescribed tempo when you open an exercise in a workout."
+            />
           </CardBody>
         </Card>
 
@@ -380,6 +398,24 @@ export default function SettingsPage() {
               <Button variant="secondary" onClick={download} icon={<Download size={15} />}>
                 Export my data
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => restoreInput.current?.click()}
+                icon={<Upload size={15} />}
+              >
+                Restore backup
+              </Button>
+              <input
+                ref={restoreInput}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void onRestore(file);
+                  e.target.value = "";
+                }}
+              />
               <Button variant="danger" onClick={() => setResetOpen(true)} icon={<RotateCcw size={15} />}>
                 Reset everything
               </Button>

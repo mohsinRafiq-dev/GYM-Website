@@ -92,15 +92,23 @@ Legend: `[x]` done · `[~]` partial · `[ ]` planned
 - [x] Adherence only counts weeks since tracking began
 - [x] Unused dependencies removed
 
-## Backlog (not built yet)
+## Phase 6 — Backlog completed
 
-- [ ] Smarter load pre-fill after a deload week (currently copies the last session's weight)
-- [ ] Tempo metronome in the workout player (a setting exists but isn't wired up)
-- [ ] Snooze for reminders
-- [ ] Page transition animations
-- [ ] Progress photos in Firebase Storage (currently inline data URLs; Firestore documents cap at 1 MB)
-- [ ] Real-time team chat (the team feed is a post list, not live chat)
-- [ ] Coach-assigned custom programmes per member
-- [ ] Apple Health / Google Fit import
-- [ ] Push notifications via FCM when the tab is closed
-- [ ] Video upload for form checks
+- [x] Deload-aware load pre-fill: deload weeks start at ~60% of the last working weight, and the week after resumes from the last non-deload session instead of the light numbers
+- [x] Tempo metronome in the workout player — a beep per second of the prescribed tempo, accent on the lift, rep counter; default set in Settings
+- [x] Reminder snooze (5/10/15/30 min) that survives a page reload, plus a "Start workout" action on the toast and notification
+- [x] Page transitions with React View Transitions (disabled under reduced motion)
+- [x] Progress photos compressed in the browser and stored in Firebase Storage (owner-only rules); inline only in local mode
+- [x] Real-time team chat — Firestore listeners, transactional sends, announcements for coaches
+- [x] Coach programme builder (`/team/programs`) — clone a built-in plan or start blank, edit every day and exercise, live volume check; assign per member, member accepts from a banner
+- [x] Measurement import — any CSV (Google Fit, Samsung Health, spreadsheets; lb/in converted) and Apple Health `export.xml`, streamed and parsed on-device
+- [~] Push reminders via FCM with a scheduled Cloud Function (`functions/`) — code, service worker and rules are complete and type-checked, but not tested end to end: that needs a Firebase project on the Blaze plan
+- [x] Form checks (`/form-check`) — the video stays on the device; slow-motion scrubbing, frame stepping, key-frame capture, cue checklist, optional Claude vision review of the frames, saved history
+- [x] Backup restore from an exported JSON file
+- [x] Firestore sync hardened: diffed writes, deletions propagate, team updates are transactions, ownership passes on when an owner leaves, the stats-privacy setting is respected
+
+## Ideas for later
+
+- [ ] Heart rate from a chest strap during sessions (Web Bluetooth)
+- [ ] Coach comments on members' logged sessions
+- [ ] Offline queue for Firestore writes made during long periods without a connection

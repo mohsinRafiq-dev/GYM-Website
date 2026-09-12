@@ -790,8 +790,103 @@ export const PROGRAMS: Program[] = [aesthetic6, ppl6, upperLower4, fullBody3, ho
 
 export const DEFAULT_PROGRAM_ID = "aesthetic-6";
 
+/* ------------------------------------------------- coach-built programmes */
+
+/**
+ * Programmes written by a team coach. The data provider registers the current
+ * team's programmes here, so every lookup below resolves them like built-ins.
+ */
+const customRegistry = new Map<string, Program>();
+
+export function registerCustomPrograms(programs: Program[] | undefined): void {
+  customRegistry.clear();
+  for (const p of programs ?? []) customRegistry.set(p.id, p);
+}
+
+export function isCustomProgram(id: string | undefined): boolean {
+  return Boolean(id && customRegistry.has(id));
+}
+
 export function getProgram(id: string | undefined): Program {
-  return PROGRAMS.find((p) => p.id === id) ?? aesthetic6;
+  return PROGRAMS.find((p) => p.id === id) ?? (id ? customRegistry.get(id) : undefined) ?? aesthetic6;
+}
+
+/** Built-ins first, then this team's custom programmes. */
+export function allPrograms(): Program[] {
+  return [...PROGRAMS, ...customRegistry.values()];
+}
+
+/** An empty rest day, used when a coach clears a day in the builder. */
+export function blankDay(key: DayKey): WorkoutDay {
+  return restDay(key, "Rest");
+}
+
+/** Deep copy of a programme as a new, editable custom programme. */
+export function cloneAsCustom(
+  base: Program,
+  meta: { id: string; teamId: string; createdBy: string; createdByName: string },
+): Program {
+  const now = Date.now();
+  const copy = JSON.parse(JSON.stringify(base)) as Program;
+  return normaliseProgram({
+    ...copy,
+    id: meta.id,
+    name: base.custom ? `${base.name} (copy)` : `${base.name} — team edition`,
+    custom: {
+      teamId: meta.teamId,
+      createdBy: meta.createdBy,
+      createdByName: meta.createdByName,
+      createdAt: now,
+      updatedAt: now,
+    },
+  });
+}
+
+/**
+ * Recompute everything derivable from a programme's days so hand-edited
+ * programmes can't drift: exercise order, day types, session length, days
+ * per week, targeted muscles and required equipment.
+ */
+export function normaliseProgram(program: Program): Program {
+  const days = {} as Record<DayKey, WorkoutDay>;
+  const equipment = new Set<Program["equipmentNeeded"][number]>();
+
+  for (const key of Object.keys(program.days) as DayKey[]) {
+    const day = program.days[key];
+    const exercises = day.exercises.map((e, i) => ({ ...e, order: i + 1 }));
+    const targets = new Set<MuscleGroup>();
+    let seconds = 8 * 60; // warm-up allowance
+    for (const e of exercises) {
+      const ex = getExercise(e.exerciseId);
+      if (!ex) continue;
+      ex.primary.forEach((m) => targets.add(m));
+      ex.equipment.forEach((q) => equipment.add(q));
+      // ~40s of work per set plus the prescribed rest.
+      seconds += e.sets * (40 + e.restSeconds);
+    }
+    const type: WorkoutDay["type"] =
+      exercises.length === 0 ? "rest" : day.type === "rest" ? "hypertrophy" : day.type;
+    days[key] = {
+      ...day,
+      key,
+      type,
+      exercises,
+      targets: type === "rest" ? [] : [...targets].slice(0, 6),
+      estimatedMinutes: type === "rest" ? 0 : Math.round(seconds / 60 / 5) * 5,
+    };
+  }
+
+  // Mobility days are recovery work, matching how the built-in programmes count days.
+  const trainingDays = Object.values(days).filter(
+    (d) => d.type !== "rest" && d.type !== "mobility",
+  ).length;
+  return {
+    ...program,
+    days,
+    daysPerWeek: trainingDays,
+    equipmentNeeded: [...equipment].filter((q) => q !== "none").slice(0, 8),
+    tagline: program.tagline || `${trainingDays} days · coach-built`,
+  };
 }
 
 export function getDay(programId: string | undefined, dayKey: DayKey): WorkoutDay {

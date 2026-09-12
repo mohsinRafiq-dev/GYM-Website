@@ -34,14 +34,16 @@ import { RestTimer } from "@/components/workout/RestTimer";
 import { useData } from "@/lib/store/data-context";
 import { getProgram } from "@/lib/data/programs";
 import { getExercise, substitutionsFor, exerciseName } from "@/lib/data/exercises";
-import { lastPerformance, summariseSession } from "@/lib/session-utils";
+import { lastPerformance, suggestLoad, summariseSession } from "@/lib/session-utils";
 import {
   estimate1RM,
+  firstSessionDate,
+  mesocycleWeek,
   parseRepRange,
   platesPerSide,
-  progressionAdvice,
   warmupRamp,
 } from "@/lib/fitness";
+import { TempoMetronome } from "@/components/workout/TempoMetronome";
 import { sound, vibrate } from "@/lib/sound";
 import {
   clock,
@@ -130,8 +132,18 @@ export default function TrainPage() {
       if (!data) return;
       const day = program.days[dayKey];
       const exercises: LoggedExercise[] = day.exercises.map((planned) => {
-        const last = lastPerformance(planned.exerciseId, data.sessions);
-        const suggested = last?.sets[0]?.weightKg ?? 0;
+        const meta = getExercise(planned.exerciseId);
+        // Deload-aware: never pre-fill from a deload session, and drop to ~60%
+        // when today is itself a deload.
+        const suggested = suggestLoad({
+          exercise: meta,
+          exerciseId: planned.exerciseId,
+          history: data.sessions,
+          repRange: parseRepRange(planned.reps, meta?.repRange ?? [8, 12]),
+          today: toISODate(),
+          startDate: firstSessionDate(data.sessions),
+          mesocycleWeeks: program.mesocycleWeeks,
+        }).weightKg;
         return {
           exerciseId: planned.exerciseId,
           sets: Array.from({ length: planned.sets }).map((_, i) => ({
@@ -444,6 +456,10 @@ export default function TrainPage() {
 
   /* ============================================================== active */
   const day = program.days[session.dayKey];
+  const trainingStart = firstSessionDate(data.sessions);
+  const deloadToday =
+    Boolean(trainingStart) &&
+    mesocycleWeek(trainingStart!, session.date, program.mesocycleWeeks).phase === "deload";
 
   return (
     <div className="space-y-4 pb-24">
@@ -471,6 +487,14 @@ export default function TrainPage() {
         />
       </div>
 
+      {deloadToday && (
+        <div className="rounded-lg border border-ice/30 bg-ice/8 p-3 text-xs leading-relaxed text-muted">
+          <span className="font-semibold text-ice">Deload week.</span> Loads are pre-filled at about
+          60% of your last working weights. Same movements, nowhere near failure — this is the week
+          that makes next week&apos;s numbers go up.
+        </div>
+      )}
+
       {/* ---------------------------------------------------- exercises */}
       <div className="space-y-3">
         {session.exercises.map((logged, idx) => {
@@ -482,13 +506,16 @@ export default function TrainPage() {
           const open = openExercise === logged.exerciseId;
           const last = lastPerformance(logged.exerciseId, data.sessions);
           const doneSets = logged.sets.filter((s) => s.completed).length;
-          const advice = last
-            ? progressionAdvice(
-                last.sets,
-                // Judge against today's prescription, not the exercise default.
-                planned ? parseRepRange(planned.reps, ex.repRange) : ex.repRange,
-              )
-            : null;
+          const suggestion = suggestLoad({
+            exercise: ex,
+            exerciseId: logged.exerciseId,
+            history: data.sessions,
+            // Judge against today's prescription, not the exercise default.
+            repRange: planned ? parseRepRange(planned.reps, ex.repRange) : ex.repRange,
+            today: session.date,
+            startDate: trainingStart,
+            mesocycleWeeks: program.mesocycleWeeks,
+          });
 
           return (
             <Card key={logged.exerciseId} className={open ? "border-volt/40" : undefined}>
@@ -558,22 +585,27 @@ export default function TrainPage() {
                       </div>
                     )}
 
-                    {advice && (
+                    {last && (
                       <div
                         className={cn(
                           "rounded-lg border p-2.5",
-                          advice.action === "increase"
-                            ? "border-ok/30 bg-ok/8"
-                            : advice.action === "decrease"
-                              ? "border-warn/30 bg-warn/8"
-                              : "border-line bg-panel2",
+                          suggestion.basis === "deload"
+                            ? "border-ice/30 bg-ice/8"
+                            : suggestion.basis === "return"
+                              ? "border-violet/30 bg-violet/8"
+                              : "border-ok/30 bg-ok/8",
                         )}
                       >
                         <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-faint">
                           <Lightbulb size={11} />
                           Today&apos;s call
+                          {suggestion.weightKg > 0 && (
+                            <span className="ml-auto text-xs normal-case tracking-normal text-ink tnum">
+                              {displayWeight(suggestion.weightKg, data.settings.units, 1)}
+                            </span>
+                          )}
                         </p>
-                        <p className="mt-1 text-xs leading-relaxed text-muted">{advice.reason}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted">{suggestion.reason}</p>
                       </div>
                     )}
                   </div>
@@ -726,12 +758,19 @@ export default function TrainPage() {
                   )}
 
                   <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                    <ExerciseAnimation
-                      pattern={ex.pattern}
-                      tempo={planned?.tempo ?? ex.tempo}
-                      size="sm"
-                      showCaption={false}
-                    />
+                    <div className="space-y-2">
+                      <ExerciseAnimation
+                        pattern={ex.pattern}
+                        tempo={planned?.tempo ?? ex.tempo}
+                        size="sm"
+                        showCaption={false}
+                      />
+                      <TempoMetronome
+                        tempo={planned?.tempo ?? ex.tempo}
+                        autoStart={data.settings.tempoMetronome}
+                        vibrationEnabled={data.settings.vibrationEnabled}
+                      />
+                    </div>
                     <div>
                       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-faint">
                         Cues

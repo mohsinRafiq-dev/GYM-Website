@@ -37,6 +37,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloud function build output and dependencies
+/functions/lib
+/functions/node_modules
+
+# firebase cli
+.firebase/
+firebase-debug.log*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { ViewTransition, useEffect, useState, type ReactNode } from "react";
 import {
   Activity,
   Award,
@@ -20,6 +20,7 @@ import {
   Settings,
   Sparkles,
   Users,
+  Video,
   Wrench,
   X,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/plan", label: "Weekly Plan", icon: <CalendarCheck size={17} /> },
       { href: "/train", label: "Start Workout", icon: <Dumbbell size={17} /> },
       { href: "/exercises", label: "Exercise Library", icon: <Activity size={17} /> },
+      { href: "/form-check", label: "Form Check", icon: <Video size={17} /> },
     ],
   },
   {
@@ -265,7 +267,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-28 pt-5 lg:pb-10">
-          {children}
+          {/* Keyed by route: navigations crossfade and rise; the shell stays still. */}
+          <ViewTransition key={pathname} enter="page-enter" exit="page-exit" default="none">
+            <div>{children}</div>
+          </ViewTransition>
         </main>
       </div>
 

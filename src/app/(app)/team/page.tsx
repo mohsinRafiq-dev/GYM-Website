@@ -10,9 +10,7 @@ import {
   Flame,
   Gavel,
   LogOut,
-  Megaphone,
   Plus,
-  Send,
   Shield,
   Target,
   Trash2,
@@ -25,11 +23,13 @@ import { PageHeader } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Segmented, Textarea } from "@/components/ui/form";
-import { Avatar, EmptyState, Pill, Progress, Stat } from "@/components/ui/feedback";
+import { Avatar, EmptyState, Progress, Stat } from "@/components/ui/feedback";
 import { Modal } from "@/components/ui/modal";
 import { useData } from "@/lib/store/data-context";
+import { TeamChat } from "@/components/team/TeamChat";
+import { AssignmentBanner, CoachPrograms } from "@/components/team/CoachPrograms";
 import { levelTitle } from "@/lib/fitness";
-import { cn, compact, relativeDay, toISODate } from "@/lib/utils";
+import { cn, compact, toISODate } from "@/lib/utils";
 import type { TeamRole } from "@/lib/types";
 
 const DEFAULT_RULES = [
@@ -61,7 +61,6 @@ export default function TeamPage() {
     joinTeam,
     leaveTeam,
     acceptTeamTerms,
-    postToTeam,
     setTeamChallenge,
     updateMemberRole,
     removeMember,
@@ -77,7 +76,6 @@ export default function TeamPage() {
   const [privacy, setPrivacy] = useState<"invite-only" | "open">("invite-only");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [post, setPost] = useState("");
   const [sort, setSort] = useState<SortKey>("streak");
   const [challengeOpen, setChallengeOpen] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -325,6 +323,8 @@ export default function TeamPage() {
         </Card>
       )}
 
+      <AssignmentBanner />
+
       {/* --------------------------------------------------------- stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Members" value={`${team.members.length}/${team.maxMembers}`} icon={<Users size={15} />} />
@@ -356,7 +356,7 @@ export default function TeamPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* ------------------------------------------------ leaderboard */}
           <Card>
             <CardHeader
@@ -406,6 +406,7 @@ export default function TeamPage() {
                         <p className="flex items-center gap-1.5 truncate text-sm text-ink">
                           {m.displayName}
                           {isMe && <span className="text-[10px] text-volt">you</span>}
+                          {m.private && <span className="text-[10px] text-faint">stats private</span>}
                           {m.role === "owner" && <Crown size={11} className="text-ember" />}
                           {m.role === "coach" && <Shield size={11} className="text-ice" />}
                         </p>
@@ -467,71 +468,12 @@ export default function TeamPage() {
             </CardBody>
           </Card>
 
-          {/* ------------------------------------------------------ feed */}
-          <Card>
-            <CardHeader title="Team feed" icon={<Megaphone size={15} />} />
-            <CardBody>
-              <div className="flex gap-2">
-                <Input
-                  value={post}
-                  onChange={(e) => setPost(e.target.value)}
-                  placeholder="Hit a PR? Skipping tomorrow? Say something."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && post.trim()) {
-                      postToTeam(post.trim(), isCoach ? "announcement" : "cheer");
-                      setPost("");
-                    }
-                  }}
-                />
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    if (!post.trim()) return;
-                    postToTeam(post.trim(), isCoach ? "announcement" : "cheer");
-                    setPost("");
-                  }}
-                  icon={<Send size={14} />}
-                >
-                  Post
-                </Button>
-              </div>
-
-              {team.posts.length === 0 ? (
-                <p className="mt-4 text-center text-xs text-faint">Nothing posted yet.</p>
-              ) : (
-                <ul className="mt-4 space-y-2.5">
-                  {team.posts.map((p) => (
-                    <li
-                      key={p.id}
-                      className={cn(
-                        "rounded-lg border p-3",
-                        p.pinned ? "border-volt/40 bg-volt/6" : "border-line bg-panel2",
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar name={p.authorName} src={p.authorPhoto} size={24} />
-                        <span className="text-xs font-medium text-ink">{p.authorName}</span>
-                        <Pill
-                          tone={
-                            p.kind === "announcement" ? "ember" : p.kind === "pr" ? "violet" : "neutral"
-                          }
-                        >
-                          {p.kind}
-                        </Pill>
-                        <span className="ml-auto text-[10px] text-faint">
-                          {relativeDay(toISODate(new Date(p.createdAt)))}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-sm leading-relaxed text-muted">{p.body}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
+          <TeamChat />
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
+          <CoachPrograms />
+
           {/* ------------------------------------------------- challenge */}
           <Card className={team.challenge ? "border-ember/30" : undefined}>
             <CardHeader

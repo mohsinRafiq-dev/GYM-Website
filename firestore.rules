@@ -7,8 +7,10 @@ rules_version = '2';
 //
 // Model:
 //  • A user owns everything under /users/{uid} and nobody else can read it.
-//  • A team document is readable by its members and writable in ways that stop
-//    one member from rewriting the whole roster.
+//    That includes sessions, measurements, photos, form checks and the push
+//    devices the reminder function reads (the Admin SDK bypasses these rules).
+//  • A team document is readable by any signed-in user (joining by code needs
+//    it) and writable by its members, with guard rails on ownership.
 // ============================================================================
 
 service cloud.firestore {
@@ -26,7 +28,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if isSelf(uid);
 
-      // Sessions, attendance, metrics, photos, nutrition, coach thread.
+      // sessions, attendance, metrics, photos, nutrition, coach, formChecks, devices
       match /{collection}/{docId} {
         allow read, write: if isSelf(uid);
       }
@@ -35,43 +37,51 @@ service cloud.firestore {
     // ---------------------------------------------------------------- team --
     match /teams/{teamId} {
 
-      function team() {
+      function before() {
         return resource.data;
       }
 
-      function isMember() {
-        return signedIn() && request.auth.uid in team().memberUids;
+      function after() {
+        return request.resource.data;
       }
 
-      function isOwner() {
-        return signedIn() && request.auth.uid == team().ownerUid;
+      function wasMember() {
+        return request.auth.uid in before().memberUids;
       }
 
-      // Anyone signed in can read a team document — that is how joining by code
-      // works. Keep nothing sensitive in it beyond the stats members opt to share.
+      function wasOwner() {
+        return request.auth.uid == before().ownerUid;
+      }
+
       allow read: if signedIn();
 
       // The creator must be the owner and the only initial member.
       allow create: if signedIn()
-                    && request.resource.data.ownerUid == request.auth.uid
-                    && request.auth.uid in request.resource.data.memberUids;
+                    && after().ownerUid == request.auth.uid
+                    && after().memberUids == [request.auth.uid];
 
-      // Members may update the team (joining, posting, updating their own stats).
-      // The owner can never be reassigned by a non-owner, and a joiner may only
-      // add themselves.
-      allow update: if signedIn()
-                    && request.resource.data.ownerUid == team().ownerUid
-                    && (
-                      isMember()
-                      || (
-                        // Joining: the roster grows by exactly this user.
-                        request.resource.data.memberUids.size() == team().memberUids.size() + 1
-                        && request.auth.uid in request.resource.data.memberUids
-                        && team().memberUids.size() < team().maxMembers
-                      )
-                    );
+      allow update: if signedIn() && (
+        // Members can update the team. Ownership may only change hands when
+        // the current owner does it, and the new owner must be a member.
+        (
+          wasMember()
+          && (
+            after().ownerUid == before().ownerUid
+            || (wasOwner() && after().ownerUid in after().memberUids)
+          )
+        )
+        // Joining: the roster grows by exactly this user, within the cap.
+        || (
+          !wasMember()
+          && after().ownerUid == before().ownerUid
+          && request.auth.uid in after().memberUids
+          && after().memberUids.size() == before().memberUids.size() + 1
+          && before().memberUids.size() < before().maxMembers
+        )
+      );
 
-      allow delete: if isOwner();
+      // The owner can delete the team; so can the last remaining member.
+      allow delete: if signedIn() && (wasOwner() || before().memberUids == [request.auth.uid]);
     }
   }
 }

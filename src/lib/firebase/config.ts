@@ -1,6 +1,6 @@
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const config = {
@@ -36,6 +36,10 @@ function ensureApp(): FirebaseApp | undefined {
   return app;
 }
 
+export function getFirebaseApp(): FirebaseApp | undefined {
+  return ensureApp();
+}
+
 export function getFirebaseAuth(): Auth | undefined {
   const a = ensureApp();
   if (!a) return undefined;
@@ -46,7 +50,16 @@ export function getFirebaseAuth(): Auth | undefined {
 export function getDb(): Firestore | undefined {
   const a = ensureApp();
   if (!a) return undefined;
-  dbInstance ??= getFirestore(a);
+  if (!dbInstance) {
+    // Records routinely carry optional fields set to undefined (an empty note,
+    // an unset RPE). Firestore rejects those by default, so drop them instead.
+    try {
+      dbInstance = initializeFirestore(a, { ignoreUndefinedProperties: true });
+    } catch {
+      // Already initialised elsewhere (e.g. hot reload) — reuse that instance.
+      dbInstance = getFirestore(a);
+    }
+  }
   return dbInstance;
 }
 

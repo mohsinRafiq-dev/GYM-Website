@@ -23,6 +23,7 @@ import { Card, CardBody, CardHeader, SectionTitle } from "@/components/ui/card";
 import { Avatar, Pill, Progress, Ring, Stat } from "@/components/ui/feedback";
 import { MuscleBalanceChart, TrendChart } from "@/components/charts";
 import { MuscleMap } from "@/components/workout/MuscleMap";
+import { AssignmentBanner } from "@/components/team/CoachPrograms";
 import { useData } from "@/lib/store/data-context";
 import { getProgram, dayActivation } from "@/lib/data/programs";
 import { exerciseName } from "@/lib/data/exercises";
@@ -118,6 +119,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <AssignmentBanner />
+
       {/* --------------------------------------------------------- hero */}
       <Card glow className="overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr]">

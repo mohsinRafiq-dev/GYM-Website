@@ -53,6 +53,21 @@ export const sound = {
   click() {
     tone(1200, 40, 0.04, "square");
   },
+  /**
+   * Tempo metronome beats. Pitch tracks the bar: low while lowering, flat
+   * during a pause, high while lifting, and an accent on the first beat of
+   * every rep so you can count reps without looking.
+   */
+  beat(kind: "lower" | "pause" | "lift" | "accent") {
+    const spec = {
+      lower: [520, 70, 0.05],
+      pause: [700, 45, 0.035],
+      lift: [980, 70, 0.06],
+      accent: [1320, 90, 0.08],
+    } as const;
+    const [freq, ms, gain] = spec[kind];
+    tone(freq, ms, gain, kind === "pause" ? "sine" : "triangle");
+  },
   /** Reminder alarm. */
   alarm() {
     [0, 1, 2].forEach((i) =>

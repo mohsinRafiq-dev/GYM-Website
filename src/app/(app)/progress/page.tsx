@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Camera,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   Trash2,
   TrendingUp,
   Trophy,
+  Upload,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ import { Field, Input, Segmented, Select, Textarea } from "@/components/ui/form"
 import { EmptyState, Pill, Stat } from "@/components/ui/feedback";
 import { Modal } from "@/components/ui/modal";
 import { MuscleBalanceChart, TrendChart } from "@/components/charts";
+import { ImportMetricsDialog } from "@/components/progress/ImportMetricsDialog";
 import { useData } from "@/lib/store/data-context";
 import { exerciseName } from "@/lib/data/exercises";
 import {
@@ -51,6 +54,7 @@ export default function ProgressPage() {
   const [liftId, setLiftId] = useState<string>("");
   const [metricOpen, setMetricOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -311,9 +315,14 @@ export default function ProgressPage() {
             subtitle="Tape doesn't lie. Measure every two weeks, same time, same conditions."
             icon={<Ruler size={15} />}
             action={
-              <Button size="sm" variant="secondary" onClick={() => setMetricOpen(true)} icon={<Plus size={13} />}>
-                Add
-              </Button>
+              <div className="flex gap-1.5">
+                <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} icon={<Upload size={13} />}>
+                  Import
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setMetricOpen(true)} icon={<Plus size={13} />}>
+                  Add
+                </Button>
+              </div>
             }
           />
           <CardBody>
@@ -396,7 +405,7 @@ export default function ProgressPage() {
                     </figcaption>
                     <button
                       type="button"
-                      onClick={() => deletePhoto(p.id)}
+                      onClick={() => void deletePhoto(p.id)}
                       className="absolute right-1 top-1 rounded bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
                       aria-label="Delete photo"
                     >
@@ -505,11 +514,13 @@ export default function ProgressPage() {
       <PhotoModal
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
-        onSave={(p) => {
-          addPhoto(p);
+        onSave={async (p) => {
+          await addPhoto(p);
           setPhotoOpen(false);
+          toast.success("Progress photo saved");
         }}
       />
+      <ImportMetricsDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }
@@ -653,34 +664,52 @@ function PhotoModal({
 }: {
   open: boolean;
   onClose(): void;
-  onSave(p: { date: string; pose: "front" | "side" | "back"; url: string; note?: string }): void;
+  onSave(p: { date: string; pose: "front" | "side" | "back"; file: Blob }): Promise<void>;
 }) {
+  const { storage } = useData();
   const [pose, setPose] = useState<"front" | "side" | "back">("front");
-  const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
   const [date, setDate] = useState(toISODate());
+  const [busy, setBusy] = useState(false);
 
-  const onFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => setUrl(String(reader.result));
-    reader.readAsDataURL(file);
+  const choose = (next: File | null) => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(next);
+    setPreview(next ? URL.createObjectURL(next) : "");
+  };
+
+  const close = () => {
+    choose(null);
+    onClose();
+  };
+
+  const save = async () => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      await onSave({ date, pose, file });
+      choose(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save that photo.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title="Add a progress photo"
-      description="Stored locally in your browser. Nothing is uploaded anywhere unless you've configured Firebase Storage."
+      description={
+        storage === "firebase"
+          ? "Compressed to around 300 KB, then stored privately in your Firebase Storage."
+          : "Compressed to around 300 KB, then stored in this browser only."
+      }
       size="sm"
       footer={
-        <Button
-          variant="primary"
-          disabled={!url}
-          onClick={() => {
-            onSave({ date, pose, url });
-            setUrl("");
-          }}
-        >
+        <Button variant="primary" disabled={!file} loading={busy} onClick={save}>
           Save photo
         </Button>
       }
@@ -704,16 +733,13 @@ function PhotoModal({
           <Input
             type="file"
             accept="image/*"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onFile(f);
-            }}
+            onChange={(e) => choose(e.target.files?.[0] ?? null)}
             className="h-auto py-2"
           />
         </Field>
-        {url && (
+        {preview && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="Preview" className="max-h-64 w-full rounded-lg object-contain" />
+          <img src={preview} alt="Preview" className="max-h-64 w-full rounded-lg object-contain" />
         )}
       </div>
     </Modal>

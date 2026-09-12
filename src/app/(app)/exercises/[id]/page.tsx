@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   Target,
   TrendingUp,
+  Video,
   Wind,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/AppShell";
@@ -99,13 +100,22 @@ export default function ExerciseDetailPage() {
         title={exercise.name}
         subtitle={exercise.purpose}
         action={
-          <Button
-            variant={favorite ? "ember" : "outline"}
-            onClick={() => toggleFavorite(exercise.id)}
-            icon={<Heart size={15} fill={favorite ? "currentColor" : "none"} />}
-          >
-            {favorite ? "Saved" : "Save"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink
+              href={`/form-check?exercise=${exercise.id}`}
+              variant="secondary"
+              icon={<Video size={15} />}
+            >
+              Check my form
+            </ButtonLink>
+            <Button
+              variant={favorite ? "ember" : "outline"}
+              onClick={() => toggleFavorite(exercise.id)}
+              icon={<Heart size={15} fill={favorite ? "currentColor" : "none"} />}
+            >
+              {favorite ? "Saved" : "Save"}
+            </Button>
+          </div>
         }
       />
 

@@ -286,6 +286,14 @@ export interface Program {
   days: Record<DayKey, WorkoutDay>;
   /** Progression policy shown to the user and used by the coach. */
   progression: string[];
+  /** Set on programmes built by a team coach rather than shipped with the app. */
+  custom?: {
+    teamId: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: number;
+    updatedAt: number;
+  };
 }
 
 /* --------------------------------------------------------------- user ---- */
@@ -357,7 +365,11 @@ export interface UserSettings {
   /** Per-day reminder times, "HH:mm" or null when off. */
   reminders: Partial<Record<DayKey, string | null>>;
   reminderLeadMinutes: number;
+  /** How long "Snooze" pushes a reminder back. */
+  snoozeMinutes: number;
   notificationsEnabled: boolean;
+  /** Deliver reminders through Firebase Cloud Messaging when the app is closed. */
+  pushEnabled: boolean;
   publicProfile: boolean;
   shareStatsWithTeam: boolean;
   /** Weekly rest-day allowance that will not break a streak. */
@@ -483,8 +495,10 @@ export interface ProgressPhoto {
   id: string;
   date: string;
   pose: "front" | "side" | "back";
-  /** Data URL in local mode, Storage URL in Firebase mode. */
+  /** Data URL in local mode, Storage download URL in Firebase mode. */
   url: string;
+  /** Storage object path, so the file can be deleted with the entry. */
+  storagePath?: string;
   weightKg?: number;
   note?: string;
 }
@@ -550,6 +564,8 @@ export interface TeamMember {
   role: TeamRole;
   joinedAt: number;
   acceptedTermsAt?: number;
+  /** The member turned off "share stats with my team". */
+  private?: boolean;
   /** Denormalised for a fast leaderboard read. */
   stats: {
     currentStreak: number;
@@ -604,6 +620,18 @@ export interface Team {
   members: TeamMember[];
   challenge?: TeamChallenge;
   posts: TeamPost[];
+  /** Programmes written by the owner or a coach for this team. */
+  customPrograms?: Program[];
+  /** Member uid → the programme a coach has asked them to run. */
+  assignments?: Record<string, ProgramAssignment>;
+}
+
+export interface ProgramAssignment {
+  programId: string;
+  assignedBy: string;
+  assignedByName: string;
+  assignedAt: number;
+  note?: string;
 }
 
 /* ------------------------------------------------------ gamification ---- */
@@ -672,6 +700,24 @@ export interface CoachContext {
   adherence: { last4Weeks: number; targetPerWeek: number };
 }
 
+/* -------------------------------------------------------- form checks --- */
+
+export interface FormCheck {
+  id: string;
+  date: string;
+  createdAt: number;
+  exerciseId: string;
+  /** Small JPEG of one captured frame (data URL or Storage URL). */
+  thumbnail?: string;
+  frameCount: number;
+  /** Cue text → whether the lifter judged it done well. */
+  checklist: Record<string, boolean>;
+  notes?: string;
+  /** Markdown review. */
+  review?: string;
+  reviewSource?: "ai" | "self";
+}
+
 /* ------------------------------------------------------------ misc ------ */
 
 export interface AppData {
@@ -689,4 +735,5 @@ export interface AppData {
   exerciseVideos: Record<string, string>;
   teamId?: string;
   coachThread: CoachMessage[];
+  formChecks: FormCheck[];
 }

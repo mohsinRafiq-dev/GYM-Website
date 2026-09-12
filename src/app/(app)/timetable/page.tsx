@@ -6,6 +6,7 @@ import {
   AlarmClock,
   Bell,
   BellOff,
+  BellRing,
   CalendarArrowDown,
   Clock,
   Download,
@@ -21,6 +22,8 @@ import { Pill, Stat } from "@/components/ui/feedback";
 import { useData } from "@/lib/store/data-context";
 import { getProgram } from "@/lib/data/programs";
 import { sound } from "@/lib/sound";
+import { disablePush, enablePush, pushConfigured, readPushToken } from "@/lib/push";
+import { getRepo } from "@/lib/store/repo";
 import { DAY_KEYS, DAY_LABELS, type DayKey } from "@/lib/types";
 import { cn, dayKeyOf, formatTime12, minutesFromTime } from "@/lib/utils";
 
@@ -288,11 +291,26 @@ export default function TimetablePage() {
                 />
               </Field>
 
+              <Field label="Snooze for" hint="The reminder has a Snooze button; this is how long it waits.">
+                <Segmented
+                  value={String(data.settings.snoozeMinutes)}
+                  onChange={(v) => updateSettings({ snoozeMinutes: Number(v) })}
+                  options={[
+                    { value: "5", label: "5m" },
+                    { value: "10", label: "10m" },
+                    { value: "15", label: "15m" },
+                    { value: "30", label: "30m" },
+                  ]}
+                />
+              </Field>
+
               <Button variant="secondary" onClick={() => sound.alarm()} icon={<Volume2 size={14} />}>
                 Test the alarm
               </Button>
             </CardBody>
           </Card>
+
+          <PushRemindersCard />
 
           <Card className="border-ice/30">
             <CardHeader
@@ -368,4 +386,63 @@ function nextReminder(
     return { dayKey: key, time, inDays: offset, title: titleFor(key) };
   }
   return null;
+}
+
+/* ------------------------------------------------------ push reminders -- */
+
+function PushRemindersCard() {
+  const { data, storage, updateSettings } = useData();
+  const [busy, setBusy] = useState(false);
+  if (!data) return null;
+
+  const available = storage === "firebase" && pushConfigured;
+  const on = data.settings.pushEnabled && Boolean(readPushToken());
+
+  const toggle = async (next: boolean) => {
+    setBusy(true);
+    try {
+      if (next) {
+        await enablePush();
+        updateSettings({ pushEnabled: true, notificationsEnabled: true });
+        toast.success("Push reminders are on for this device");
+      } else {
+        const token = await disablePush();
+        if (token) await getRepo().removeDevice(data.profile.uid, token);
+        updateSettings({ pushEnabled: false });
+        toast("Push reminders are off for this device");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not change push reminders.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader
+        title="Reminders when the app is closed"
+        subtitle="Push notifications through Firebase Cloud Messaging"
+        icon={<BellRing size={15} />}
+      />
+      <CardBody>
+        {available ? (
+          <Toggle
+            checked={on}
+            disabled={busy}
+            onChange={(v) => void toggle(v)}
+            label="Push reminders on this device"
+            description="Arrive even with IronPulse closed. Turn it on separately on each phone or computer."
+          />
+        ) : (
+          <p className="text-xs leading-relaxed text-muted">
+            Needs Firebase, a web push key (
+            <code className="font-mono text-[10px] text-ink">NEXT_PUBLIC_FIREBASE_VAPID_KEY</code>)
+            and the reminder Cloud Function deployed — the README walks through it. Until then, the
+            in-app alarm and the calendar export below have you covered.
+          </p>
+        )}
+      </CardBody>
+    </Card>
+  );
 }
