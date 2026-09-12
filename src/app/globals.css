@@ -1,26 +1,309 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   IronPulse design system
+   Dark-first. Light theme is a token swap on [data-theme="light"].
+   ========================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  /* surfaces */
+  --c-bg: #08090c;
+  --c-bg-2: #0b0d12;
+  --c-panel: #11141b;
+  --c-panel-2: #161a23;
+  --c-panel-3: #1c212c;
+  --c-border: #232936;
+  --c-border-strong: #333c4d;
+
+  /* text */
+  --c-text: #e9edf5;
+  --c-muted: #99a4ba;
+  --c-faint: #667186;
+
+  /* brand */
+  --c-volt: #c9ff4d;
+  --c-volt-dim: #9fd127;
+  --c-volt-ink: #0a0f02;
+  --c-ember: #ff6b2c;
+  --c-ice: #4cc9f0;
+  --c-violet: #a78bfa;
+  --c-rose: #fb7185;
+
+  /* status */
+  --c-success: #4ade80;
+  --c-warn: #fbbf24;
+  --c-danger: #f87171;
+
+  /* Chart series palette.
+     The brand accents (volt/ember/ice) fail adjacent-pair CVD separation as a
+     categorical set, so multi-series charts use this validated 8-slot palette
+     in fixed order. Single-series charts keep the brand colour — with one
+     series there is no pair to confuse, only contrast to satisfy. */
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-6: #008300;
+  --viz-7: #9085e9;
+  --viz-8: #e66767;
+  --viz-grid: rgb(255 255 255 / 0.07);
+
+  /* effects */
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -12px rgb(0 0 0 / 0.7);
+  --shadow-pop: 0 24px 60px -20px rgb(0 0 0 / 0.85);
+  --ring-volt: 0 0 0 1px rgb(201 255 77 / 0.35), 0 0 28px -6px rgb(201 255 77 / 0.45);
+  --grid-line: rgb(255 255 255 / 0.035);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg: #f5f6f9;
+  --c-bg-2: #eef0f5;
+  --c-panel: #ffffff;
+  --c-panel-2: #f7f8fb;
+  --c-panel-3: #eef1f6;
+  --c-border: #e0e4ec;
+  --c-border-strong: #c8cfdb;
+
+  --c-text: #0f1420;
+  --c-muted: #5a6478;
+  --c-faint: #8b95a8;
+
+  --c-volt: #6fa800;
+  --c-volt-dim: #86c30e;
+  --c-volt-ink: #ffffff;
+  --c-ember: #e6510f;
+  --c-ice: #0a95c4;
+  --c-violet: #7c5cf0;
+  --c-rose: #e11d48;
+
+  --c-success: #16a34a;
+  --c-warn: #b45309;
+  --c-danger: #dc2626;
+
+  /* Same eight hues, stepped for the light surface. */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #008300;
+  --viz-7: #4a3aa7;
+  --viz-8: #e34948;
+  --viz-grid: rgb(15 20 32 / 0.08);
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 12px 28px -18px rgb(16 24 40 / 0.35);
+  --shadow-pop: 0 24px 60px -24px rgb(16 24 40 / 0.28);
+  --ring-volt: 0 0 0 1px rgb(111 168 0 / 0.35), 0 0 20px -8px rgb(111 168 0 / 0.5);
+  --grid-line: rgb(15 20 32 / 0.05);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--c-bg);
+  --color-bg2: var(--c-bg-2);
+  --color-panel: var(--c-panel);
+  --color-panel2: var(--c-panel-2);
+  --color-panel3: var(--c-panel-3);
+  --color-line: var(--c-border);
+  --color-line-strong: var(--c-border-strong);
+
+  --color-ink: var(--c-text);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+
+  --color-volt: var(--c-volt);
+  --color-volt-dim: var(--c-volt-dim);
+  --color-volt-ink: var(--c-volt-ink);
+  --color-ember: var(--c-ember);
+  --color-ice: var(--c-ice);
+  --color-violet: var(--c-violet);
+  --color-rose: var(--c-rose);
+
+  --color-ok: var(--c-success);
+  --color-warn: var(--c-warn);
+  --color-danger: var(--c-danger);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-code), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-rise: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-spin-slow: spin 9s linear infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(201 255 77 / 0.45); }
+  70% { box-shadow: 0 0 0 14px rgb(201 255 77 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(201 255 77 / 0); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ---------------------------------------------------------------- base ---- */
+
+* {
+  border-color: var(--c-border);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv11", "ss01";
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--c-volt);
+  color: var(--c-volt-ink);
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-volt);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------- utilities ----- */
+
+@utility card {
+  background-color: var(--c-panel);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+@utility glass {
+  background: color-mix(in oklab, var(--c-panel) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--c-border);
+}
+
+@utility glow-volt {
+  box-shadow: var(--ring-volt);
+}
+
+@utility text-gradient {
+  background: linear-gradient(100deg, var(--c-volt) 0%, var(--c-ice) 55%, var(--c-violet) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility text-ember-gradient {
+  background: linear-gradient(100deg, var(--c-ember) 0%, var(--c-volt) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+@utility scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+  &::-webkit-scrollbar { width: 8px; height: 8px; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--c-border-strong);
+    border-radius: 999px;
+  }
+  &::-webkit-scrollbar-track { background: transparent; }
+}
+
+@utility skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--c-panel-2) 25%,
+    var(--c-panel-3) 37%,
+    var(--c-panel-2) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* number tabulation for stats */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- form resets ----- */
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="range"] {
+  accent-color: var(--c-volt);
+}
+
+/* ------------------------------------------------- reduced motion -------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* print: workout sheets should print cleanly */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
 }
